@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Двойник</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: var(--tg-theme-bg-color, #0d0d0f);
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: var(--tg-theme-text-color, #e8e6e0);
+    --muted: #7a7870;
+    --accent: #a78bfa;
+    --accent-dim: rgba(167,139,250,0.12);
+    --twin-bubble: #1a1a2e;
+    --twin-border: rgba(167,139,250,0.2);
+    --user-bubble: #1e2a1e;
+    --user-border: rgba(52,211,153,0.2);
+    --green: #34d399;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    min-height: 100vh;
+    padding-bottom: 24px;
+  }
+
+  .hero { padding: 32px 20px 20px; text-align: center; }
+
+  .logo-mark {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--accent-dim); border: 1px solid var(--twin-border);
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px; font-size: 20px;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px; font-weight: 400; line-height: 1.2;
+    color: #fff; margin-bottom: 10px;
+  }
+  .hero h1 em { font-style: italic; color: var(--accent); }
+  .hero p { font-size: 14px; color: var(--muted); max-width: 320px; margin: 0 auto; }
+
+  .progress-wrap { padding: 16px 20px; }
+  .progress-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .progress-track { height: 3px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #c4b5fd); border-radius: 2px; transition: width 0.5s ease; }
+
+  .chat-wrap { padding: 0 16px; }
+  .chat-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 18px; overflow: hidden; }
+
+  .messages { padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; min-height: 240px; max-height: 50vh; overflow-y: auto; }
+
+  .msg { display: flex; flex-direction: column; max-width: 85%; animation: fadeUp 0.3s ease; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .msg.twin { align-self: flex-start; }
+  .msg.user { align-self: flex-end; }
+  .bubble { padding: 10px 14px; border-radius: 15px; font-size: 14px; line-height: 1.55; }
+  .msg.twin .bubble { background: var(--twin-bubble); border: 1px solid var(--twin-border); border-radius: 4px 15px 15px 15px; }
+  .msg.user .bubble { background: var(--user-bubble); border: 1px solid var(--user-border); border-radius: 15px 4px 15px 15px; }
+  .msg-label { font-size: 10px; color: var(--muted); margin-bottom: 3px; }
+  .msg.user .msg-label { text-align: right; }
+
+  .typing { display: flex; gap: 4px; padding: 11px 14px; background: var(--twin-bubble); border: 1px solid var(--twin-border); border-radius: 4px 15px 15px 15px; width: fit-content; }
+  .typing span { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); opacity: 0.4; animation: blink 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: 0.4; } 40% { opacity: 1; } }
+
+  .q-card { padding: 16px; border-top: 1px solid var(--border); }
+  .q-text { font-size: 13px; color: var(--muted); margin-bottom: 10px; font-style: italic; }
+  .q-options { display: flex; flex-direction: column; gap: 7px; }
+  .q-btn { background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 13px; font-size: 13px; color: var(--text); cursor: pointer; text-align: left; font-family: 'Inter', sans-serif; transition: all 0.15s; }
+  .q-btn:active { border-color: var(--accent); background: var(--accent-dim); }
+
+  .input-wrap { display: none; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--border); }
+  .chat-input { flex: 1; background: var(--surface2); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 13px; font-size: 14px; color: var(--text); font-family: 'Inter', sans-serif; outline: none; }
+  .send-btn { background: var(--accent); border: none; border-radius: 10px; width: 38px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: #fff; font-size: 16px; }
+
+  .profile-card { margin: 16px; background: var(--surface); border: 1px solid var(--border2); border-radius: 14px; padding: 16px; display: none; }
+  .profile-card.visible { display: block; }
+  .profile-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); font-weight: 500; margin-bottom: 12px; }
+  .traits { display: flex; flex-wrap: wrap; gap: 6px; }
+  .trait { background: var(--accent-dim); border: 1px solid var(--twin-border); border-radius: 20px; padding: 4px 11px; font-size: 11px; color: var(--accent); }
+
+  .footer-note { padding: 20px; text-align: center; }
+  .footer-note p { font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="logo-mark">◈</div>
+  <h1>Твой <em>Двойник</em></h1>
+  <p>Отвечай честно — и через 30 дней он будет думать как ты</p>
+</div>
+
+<div class="progress-wrap">
+  <div class="progress-label"><span>Профиль</span><span id="progress-pct">0 / 5</span></div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+</div>
+
+<div class="chat-wrap">
+  <div class="chat-box">
+    <div class="messages" id="messages"></div>
+    <div class="q-card" id="q-card" style="display:none">
+      <div class="q-text" id="q-hint"></div>
+      <div class="q-options" id="q-options"></div>
+    </div>
+    <div class="input-wrap" id="input-wrap">
+      <input class="chat-input" id="chat-input" placeholder="Напиши своими словами..." />
+      <button class="send-btn" id="send-btn" onclick="sendFree()">→</button>
+    </div>
+  </div>
+</div>
+
+<div class="profile-card" id="profile-card">
+  <div class="profile-title">◈ Паттерны двойника</div>
+  <div class="traits" id="traits"></div>
+</div>
+
+<div class="footer-note"><p>Двойник запоминает тебя между сессиями</p></div>
+
+<script>
+// === Telegram Web App init ===
+const tg = window.Telegram?.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+const userId = tg?.initDataUnsafe?.user?.id || 'demo_user_' + Math.random().toString(36).slice(2);
+
+// === Backend API base — ЗАМЕНИШЬ на свой URL после деплоя ===
+const API_BASE = window.location.origin;
+
+const TOTAL_PHASE_QUESTIONS = 5;
+let step = 0, answered = 0, collectedTraits = [], conversationHistory = [];
+
+function $(id) { return document.getElementById(id); }
+
+function addMsg(role, text, delay = 0) {
+  return new Promise(resolve => setTimeout(() => {
+    const msgs = $('messages');
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+    div.innerHTML = `<div class="msg-label">${role==='twin'?'Двойник':'Ты'}</div><div class="bubble">${text}</div>`;
+    msgs.appendChild(div);
+    msgs.scrollTop = msgs.scrollHeight;
+    resolve();
+  }, delay));
+}
+
+function showTyping() {
+  const msgs = $('messages');
+  const div = document.createElement('div');
+  div.className = 'msg twin'; div.id = 'typing';
+  div.innerHTML = `<div class="msg-label">Двойник</div><div class="typing"><span></span><span></span><span></span></div>`;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight;
+}
+function removeTyping() { $('typing')?.remove(); }
+
+function showFreeInput(placeholder) {
+  $('q-card').style.display = 'none';
+  $('input-wrap').style.display = 'flex';
+  $('chat-input').placeholder = placeholder || 'Напиши своими словами...';
+  $('chat-input').focus();
+}
+
+async function handleUserAnswer(text) {
+  await addMsg('user', text);
+  conversationHistory.push({ role: 'user', content: text });
+  answered++; updateProgress();
+  await saveProfile();
+
+  showTyping();
+  try {
+    const res = await fetch(`${API_BASE}/api/analyze`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, history: conversationHistory, step, total: TOTAL_PHASE_QUESTIONS })
+    });
+    const data = await res.json();
+    removeTyping();
+
+    if (data.newTraits?.length) {
+      collectedTraits.push(...data.newTraits);
+      updateProfile();
+    }
+
+    step++;
+    conversationHistory.push({ role: 'assistant', content: data.nextMessage });
+    await addMsg('twin', data.nextMessage);
+
+    if (step < TOTAL_PHASE_QUESTIONS) {
+      showFreeInput();
+    } else {
+      finishPhase();
+    }
+  } catch(e) {
+    removeTyping();
+    await addMsg('twin', 'Связь барахлит. Напиши ещё раз?');
+    showFreeInput();
+  }
+}
+
+async function finishPhase() {
+  $('input-wrap').style.display = 'flex';
+  $('chat-input').placeholder = 'Спроси меня о чём угодно...';
+}
+
+async function startConversation() {
+  const opening = "Привет. Я — твой Двойник. Расскажи мне о себе что-нибудь настоящее — не формальность вроде имени и профессии, а что-то, что действительно тебя описывает.";
+  await addMsg('twin', opening, 400);
+  conversationHistory.push({ role: 'assistant', content: opening });
+  setTimeout(() => showFreeInput('Напиши своими словами...'), 700);
+}
+
+async function sendFree() {
+  const input = $('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  if (step < TOTAL_PHASE_QUESTIONS) {
+    await handleUserAnswer(text);
+    return;
+  }
+
+  await addMsg('user', text);
+  showTyping();
+  try {
+    const res = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, message: text, traits: collectedTraits })
+    });
+    const data = await res.json();
+    removeTyping();
+    await addMsg('twin', data.reply || 'Думаю над этим...');
+  } catch(e) {
+    removeTyping();
+    await addMsg('twin', 'Связь барахлит. Спроси ещё раз.');
+  }
+}
+
+async function saveProfile() {
+  try {
+    await fetch(`${API_BASE}/api/profile`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ userId, traits: collectedTraits, step })
+    });
+  } catch(e) { console.log('save failed', e); }
+}
+
+function updateProgress() {
+  const pct = Math.round((answered/TOTAL_PHASE_QUESTIONS)*100);
+  $('progress-fill').style.width = pct+'%';
+  $('progress-pct').textContent = `${Math.min(answered,TOTAL_PHASE_QUESTIONS)} / ${TOTAL_PHASE_QUESTIONS}`;
+}
+
+function updateProfile() {
+  const c = $('traits'); c.innerHTML = '';
+  [...new Set(collectedTraits)].forEach(t => {
+    const span = document.createElement('span'); span.className = 'trait'; span.textContent = t;
+    c.appendChild(span);
+  });
+  if (collectedTraits.length) $('profile-card').classList.add('visible');
+}
+
+startConversation();
+$('chat-input')?.addEventListener('keydown', e => { if (e.key==='Enter') sendFree(); });
+</script>
+</body>
+</html>
